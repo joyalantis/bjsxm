@@ -101,10 +101,17 @@ input:focus,select:focus{border-color:var(--gold)}
 .modal-title{font-size:16px;font-weight:400;color:var(--ink);margin-bottom:14px;letter-spacing:.3px}
 
 .ch-grid{display:grid;grid-template-columns:1fr 100px;gap:8px;align-items:center;margin-bottom:8px}
+
+.loading-ov{position:fixed;inset:0;background:var(--ivory);display:flex;align-items:center;justify-content:center;z-index:999;font-family:-apple-system,sans-serif;font-size:12px;color:var(--ink3);letter-spacing:2px;text-transform:uppercase}
+.no-sel{text-align:center;padding:2rem 1rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif}
+.no-sel span{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-top:6px}
 </style>
 </head>
 <body>
-<div class="app">
+
+<div id="loading-ov" class="loading-ov">Loading&hellip;</div>
+
+<div class="app" id="app-wrap" style="display:none">
 
 <div class="header">
   <div class="header-title">BJxM</div>
@@ -146,30 +153,30 @@ input:focus,select:focus{border-color:var(--gold)}
     </div>
     <div class="row2">
       <button class="btn btn-gold" onclick="logIt()">Save</button>
-      <button class="btn" onclick="cancel()">Cancel</button>
+      <button class="btn" onclick="cancelLog()">Cancel</button>
     </div>
   </div>
 </div>
 
-<!-- MONTHLY -->
+<!-- MONTHLY (personal) -->
 <div id="tab-monthly" class="sec">
   <div style="display:flex;flex-wrap:wrap;margin-bottom:12px" id="mpills"></div>
   <div id="mo-content"></div>
 </div>
 
-<!-- LEADERS -->
+<!-- LEADERS (shared) -->
 <div id="tab-leaders" class="sec">
   <div class="section-label">This month&#8217;s standings</div>
   <div id="lb"></div>
 </div>
 
-<!-- HISTORY -->
+<!-- HISTORY (personal) -->
 <div id="tab-history" class="sec">
-  <div class="section-label">All entries</div>
+  <div class="section-label">Your entries</div>
   <div id="hist"></div>
 </div>
 
-<!-- MEMBERS -->
+<!-- MEMBERS (shared) -->
 <div id="tab-members" class="sec">
   <div class="section-label">Family members</div>
   <div id="members-list"></div>
@@ -212,7 +219,16 @@ input:focus,select:focus{border-color:var(--gold)}
   </div>
 </div>
 
+</div><!-- /app-wrap -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+// ── Supabase ──────────────────────────────────────────────────────────────
+const SURL='https://dxhoxjssilitulrrwaqk.supabase.co'
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aG94anNzaWxpdHVscnJ3YXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2ODQ2MzEsImV4cCI6MjA5MzI2MDYzMX0.HH4ZEfhkuwok2keUxTvJSUeWaPZ2GLd5nrXPbjgCIJY'
+const db=supabase.createClient(SURL,SKEY)
+
+// ── Constants ─────────────────────────────────────────────────────────────
 const TONES=[
   {skin:'#FDDBB4',hair:'#5C3317'},
   {skin:'#E8B88A',hair:'#3B2005'},
@@ -220,145 +236,160 @@ const TONES=[
   {skin:'#8D5524',hair:'#1A0A00'},
   {skin:'#6B3A2A',hair:'#120700'},
   {skin:'#3B1F0E',hair:'#0A0400'},
-];
-const MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const ACTS=['Squats','Jump Rope','Bicep Curls','Miles','Steps','Push-ups','Sit-ups','Lunges','Walking','Running','Other'];
-const UN={Miles:'miles',Steps:'steps',Running:'miles',Walking:'miles',Squats:'reps','Jump Rope':'reps','Bicep Curls':'reps','Push-ups':'reps','Sit-ups':'reps',Lunges:'reps',Other:'count'};
-const u=t=>UN[t]||'count';
-const fn=n=>{const f=parseFloat(n);return isNaN(f)?'0':f%1===0?f.toLocaleString():f.toLocaleString(undefined,{maximumFractionDigits:2})};
-const dim=(mo,yr)=>new Date(yr,mo+1,0).getDate();
+]
+const MO=['January','February','March','April','May','June','July','August','September','October','November','December']
+const ACTS=['Squats','Jump Rope','Bicep Curls','Miles','Steps','Push-ups','Sit-ups','Lunges','Walking','Running','Other']
+const UN={Miles:'miles',Steps:'steps',Running:'miles',Walking:'miles',Squats:'reps','Jump Rope':'reps','Bicep Curls':'reps','Push-ups':'reps','Sit-ups':'reps',Lunges:'reps',Other:'count'}
+const u=t=>UN[t]||'count'
+const fn=n=>{const f=parseFloat(n);return isNaN(f)?'0':f%1===0?f.toLocaleString():f.toLocaleString(undefined,{maximumFractionDigits:2})}
+const dim=(mo,yr)=>new Date(yr,mo+1,0).getDate()
 
 function av(tone,size=44){
-  const t=TONES[tone]||TONES[2];const c=size/2;const r=size*.4;
+  const t=TONES[tone]||TONES[2];const c=size/2;const r=size*.4
   return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
     <circle cx="${c}" cy="${c}" r="${c}" fill="#F2EDE3"/>
     <ellipse cx="${c}" cy="${c+r*.2}" rx="${r*.6}" ry="${r*.72}" fill="${t.skin}"/>
     <ellipse cx="${c}" cy="${c-.05*r}" rx="${r*.4}" ry="${r*.46}" fill="${t.skin}"/>
     <ellipse cx="${c}" cy="${c-.3*r}" rx="${r*.46}" ry="${r*.36}" fill="${t.hair}"/>
     <ellipse cx="${c}" cy="${c+r*1.05}" rx="${r*.7}" ry="${r*.5}" fill="${t.skin}"/>
-  </svg>`;
+  </svg>`
 }
 
-let members=JSON.parse(localStorage.getItem('bjxm_final_m')||'null');
-let workouts=JSON.parse(localStorage.getItem('bjxm_final_w')||'[]');
-let mch=JSON.parse(localStorage.getItem('bjxm_final_ch')||'null');
+// ── State ─────────────────────────────────────────────────────────────────
+let members=[]        // shared — from Supabase
+let workouts=[]       // all members' logs — from Supabase (filtered per-user in personal tabs)
+let mch=JSON.parse(localStorage.getItem('bjxm_mch')||'null')  // personal per-device
+if(!mch)mch={3:{ex1:'Squats',g1:1500,ex2:'Miles',g2:100},4:{ex1:'Jump Rope',g1:3100,ex2:'Bicep Curls',g2:50}}
 
-if(!members)members=[
-  {id:1,name:'You',tone:2},
-  {id:2,name:'Member 1',tone:4},
-  {id:3,name:'Member 2',tone:0}
-];
-if(!mch)mch={
-  3:{ex1:'Squats',g1:1500,ex2:'Miles',g2:100},
-  4:{ex1:'Jump Rope',g1:3100,ex2:'Bicep Curls',g2:50}
-};
+const now=new Date()
+let sel=null           // selected member for this device (id stored in localStorage)
+let wtype='Squats',vmo=now.getMonth(),vyr=now.getFullYear()
+let renameId=null,renameTone=0
+let activeTab='log'
 
-const now=new Date();
-let sel=null,wtype='Squats',vmo=now.getMonth(),vyr=now.getFullYear();
-let renameId=null,renameTone=0;
+// ── Data helpers ──────────────────────────────────────────────────────────
+const mwf=(mo,yr)=>workouts.filter(w=>w.month===mo&&w.year===yr)
+const myWf=(mo,yr)=>sel?mwf(mo,yr).filter(w=>w.member_id===sel.id):[]
+const saveChallenges=()=>localStorage.setItem('bjxm_mch',JSON.stringify(mch))
 
-const sv=()=>{
-  localStorage.setItem('bjxm_final_m',JSON.stringify(members));
-  localStorage.setItem('bjxm_final_w',JSON.stringify(workouts));
-  localStorage.setItem('bjxm_final_ch',JSON.stringify(mch));
-};
-const mwf=(mo,yr)=>{const s=new Date(yr,mo,1).getTime(),e=new Date(yr,mo+1,0,23,59,59,999).getTime();return workouts.filter(w=>w.ts>=s&&w.ts<=e)};
+// ── Supabase fetch ────────────────────────────────────────────────────────
+async function fetchMembers(){
+  const{data}=await db.from('family_members').select('*').order('created_at')
+  members=data||[]
+  // keep sel in sync
+  if(sel)sel=members.find(m=>m.id===sel.id)||null
+}
 
+async function fetchWorkouts(){
+  const{data}=await db.from('activity_logs').select('*')
+  workouts=data||[]
+}
+
+function rerender(){
+  const fns={log:rPicker,monthly:rMonthly,leaders:rLB,history:rHist,members:rMembers}
+  fns[activeTab]?.()
+}
+
+// ── Real-time ─────────────────────────────────────────────────────────────
+function setupRealtime(){
+  db.channel('bjxm-sync')
+    .on('postgres_changes',{event:'*',schema:'public',table:'family_members'},async()=>{
+      await fetchMembers();rerender()
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'activity_logs'},async()=>{
+      await fetchWorkouts();rerender()
+    })
+    .subscribe()
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init(){
+  await Promise.all([fetchMembers(),fetchWorkouts()])
+
+  // restore selected member for this device
+  const savedId=localStorage.getItem('bjxm_sel_id')
+  if(savedId)sel=members.find(m=>m.id===savedId)||null
+
+  setupRealtime()
+  document.getElementById('loading-ov').style.display='none'
+  document.getElementById('app-wrap').style.display='block'
+  document.getElementById('hdr').textContent=now.toLocaleString('default',{month:'long',year:'numeric'})
+  rPicker()
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────
 function go(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  const map={log:0,monthly:1,leaders:2,history:3,members:4};
-  document.querySelectorAll('.tab')[map[name]].classList.add('active');
-  ({log:rPicker,monthly:rMonthly,leaders:rLB,history:rHist,members:rMembers})[name]();
+  activeTab=name
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'))
+  document.getElementById('tab-'+name).classList.add('active')
+  const map={log:0,monthly:1,leaders:2,history:3,members:4}
+  document.querySelectorAll('.tab')[map[name]].classList.add('active')
+  ;({log:rPicker,monthly:rMonthly,leaders:rLB,history:rHist,members:rMembers})[name]()
 }
 
+// ── Log tab ───────────────────────────────────────────────────────────────
 function rPicker(){
   document.getElementById('mpicker').innerHTML=members.map(m=>`
-    <div class="mcard${sel&&sel.id===m.id?' sel':''}" onclick="pick(${m.id})">
-      <button style="position:absolute;top:5px;right:6px;font-size:11px;color:var(--ink3);background:none;border:none;cursor:pointer;line-height:1" onclick="event.stopPropagation();openRename(${m.id})">&#9998;</button>
+    <div class="mcard${sel&&sel.id===m.id?' sel':''}" onclick="pick('${m.id}')">
+      <button style="position:absolute;top:5px;right:6px;font-size:11px;color:var(--ink3);background:none;border:none;cursor:pointer;line-height:1"
+        onclick="event.stopPropagation();openRename('${m.id}')">&#9998;</button>
       <div style="margin:0 auto 7px;width:44px;height:44px">${av(m.tone,44)}</div>
       <div style="font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px;font-family:-apple-system,sans-serif">${m.name}</div>
-    </div>`).join('');
+    </div>`).join('')
 }
 
 function pick(id){
-  sel=members.find(m=>m.id===id);rPicker();
-  document.getElementById('lform').style.display='block';updLbl();
-  const mo=now.getMonth(),yr=now.getFullYear(),days=dim(mo,yr),today=now.getDate();
-  const ds=document.getElementById('day-sel');ds.innerHTML='';
-  for(let d=1;d<=days;d++){const o=document.createElement('option');o.value=d;o.textContent='Day '+d+(d===today?' (today)':'');if(d===today)o.selected=true;ds.appendChild(o);}
+  sel=members.find(m=>m.id===id)
+  localStorage.setItem('bjxm_sel_id',id)
+  rPicker()
+  document.getElementById('lform').style.display='block';updLbl()
+  const mo=now.getMonth(),yr=now.getFullYear(),days=dim(mo,yr),today=now.getDate()
+  const ds=document.getElementById('day-sel');ds.innerHTML=''
+  for(let d=1;d<=days;d++){
+    const o=document.createElement('option')
+    o.value=d;o.textContent='Day '+d+(d===today?' (today)':'')
+    if(d===today)o.selected=true;ds.appendChild(o)
+  }
 }
 
-function cancel(){sel=null;document.getElementById('lform').style.display='none';rPicker()}
+function cancelLog(){sel=null;localStorage.removeItem('bjxm_sel_id');document.getElementById('lform').style.display='none';rPicker()}
 function st(btn,type){document.querySelectorAll('.wtype').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');wtype=type;updLbl()}
-function updLbl(){document.getElementById('amt-lbl').textContent='Amount ('+u(wtype)+')';}
+function updLbl(){document.getElementById('amt-lbl').textContent='Amount ('+u(wtype)+')'}
 
-function logIt(){
-  if(!sel)return;
-  const count=parseFloat(document.getElementById('amt').value);
+async function logIt(){
+  if(!sel)return
+  const count=parseFloat(document.getElementById('amt').value)
   if(!count||count<=0){alert('Enter a number greater than 0.');return}
-  const day=parseInt(document.getElementById('day-sel').value);
-  const mo=now.getMonth(),yr=now.getFullYear();
-  workouts.push({id:Date.now(),memberId:sel.id,memberName:sel.name,memberTone:sel.tone,type:wtype,count,unit:u(wtype),day,month:mo,year:yr,ts:new Date(yr,mo,day).getTime()});
-  sv();document.getElementById('amt').value='';cancel();go('monthly');
+  const day=parseInt(document.getElementById('day-sel').value)
+  const mo=now.getMonth(),yr=now.getFullYear()
+  await db.from('activity_logs').insert({
+    member_id:sel.id,type:wtype,count,unit:u(wtype),
+    day,month:mo,year:yr,ts:new Date(yr,mo,day).getTime()
+  })
+  document.getElementById('amt').value=''
+  // keep sel so user can log again; real-time will refresh data
+  go('monthly')
 }
 
-function openRename(id){
-  const m=members.find(x=>x.id===id);renameId=id;renameTone=m.tone||0;
-  document.getElementById('rename-input').value=m.name;
-  document.getElementById('tone-picker').innerHTML=TONES.map((t,i)=>`
-    <div onclick="pickTone(${i})" id="tp-${i}" style="cursor:pointer;border-radius:50%;border:2.5px solid ${i===renameTone?'#B8922A':'transparent'};padding:2px">
-      ${av(i,36)}
-    </div>`).join('');
-  document.getElementById('rmodal').style.display='flex';
-  setTimeout(()=>document.getElementById('rename-input').focus(),80);
-}
-function pickTone(i){
-  renameTone=i;
-  TONES.forEach((_,idx)=>{const el=document.getElementById('tp-'+idx);if(el)el.style.border=`2.5px solid ${idx===i?'#B8922A':'transparent'}`;});
-}
-function saveRename(){
-  const name=document.getElementById('rename-input').value.trim();
-  if(!name){alert('Enter a name.');return}
-  const m=members.find(x=>x.id===renameId);m.name=name;m.tone=renameTone;
-  workouts.forEach(w=>{if(w.memberId===renameId){w.memberName=name;w.memberTone=renameTone;}});
-  sv();closeR();rPicker();
-}
-function closeR(){document.getElementById('rmodal').style.display='none'}
-
-function rMembers(){
-  document.getElementById('members-list').innerHTML=members.map(m=>`
-    <div class="mbr-row">
-      <div style="width:38px;height:38px;flex-shrink:0">${av(m.tone,38)}</div>
-      <div style="flex:1;font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${m.name}</div>
-      <button class="btn btn-xs" onclick="openRename(${m.id})" style="margin-right:6px">Rename</button>
-      <button class="btn btn-xs" onclick="removeMember(${m.id})" style="opacity:.5">Remove</button>
-    </div>`).join('');
-}
-function addMember(){
-  const name=document.getElementById('new-name').value.trim();
-  if(!name){alert('Enter a name.');return}
-  const tone=parseInt(document.getElementById('new-tone').value)||0;
-  members.push({id:Date.now(),name,tone});sv();
-  document.getElementById('new-name').value='';rMembers();
-}
-function removeMember(id){
-  if(!confirm('Remove this member and all their data?'))return;
-  members=members.filter(m=>m.id!==id);
-  workouts=workouts.filter(w=>w.memberId!==id);
-  sv();rMembers();
-}
-
+// ── Monthly tab (personal) ────────────────────────────────────────────────
 function rMonthly(){
-  document.getElementById('mpills').innerHTML=MO.map((n,i)=>`<button class="month-pill${i===vmo?' active':''}" onclick="vmo=${i};rMonthly()">${n.slice(0,3)}</button>`).join('');
-  const mo=vmo,yr=vyr,w=mwf(mo,yr),days=dim(mo,yr);
-  const todayDay=now.getMonth()===mo&&now.getFullYear()===yr?now.getDate():null;
-  const ch=mch[mo]||{};
+  document.getElementById('mpills').innerHTML=MO.map((n,i)=>`
+    <button class="month-pill${i===vmo?' active':''}" onclick="vmo=${i};rMonthly()">${n.slice(0,3)}</button>`).join('')
+
+  if(!sel){
+    document.getElementById('mo-content').innerHTML=`<div class="no-sel">Select your name on the Log tab first.<span>Your personal progress will appear here</span></div>`
+    return
+  }
+
+  const mo=vmo,yr=vyr,days=dim(mo,yr)
+  const todayDay=now.getMonth()===mo&&now.getFullYear()===yr?now.getDate():null
+  const ch=mch[mo]||{}
+  const w=myWf(mo,yr)  // only this member's workouts
 
   let html=`<div class="card">
     <div class="card-title">${MO[mo]} Challenge</div>
-    <div class="card-sub" style="margin-bottom:14px">Set exercises &amp; goals</div>
+    <div class="card-sub" style="margin-bottom:14px">Set your goals for this month</div>
     <label>Exercise 1</label>
     <div class="ch-grid" style="margin-bottom:10px">
       <select id="ch-ex1">${ACTS.map(a=>`<option${a===(ch.ex1||'Squats')?' selected':''}>${a}</option>`).join('')}</select>
@@ -370,16 +401,14 @@ function rMonthly(){
       <input type="number" id="ch-g2" min="1" step="any" placeholder="Goal" value="${ch.g2||''}"/>
     </div>
     <button class="btn btn-gold btn-sm" onclick="saveCh()">Save challenge</button>
-  </div>`;
+  </div>`
 
   if(ch.ex1&&ch.g1){
     [{ex:ch.ex1,g:ch.g1},{ex:ch.ex2,g:ch.g2}].filter(x=>x.ex&&x.g).forEach(({ex,g})=>{
-      const ut=u(ex);
-      const mt=members.map(m=>({m,v:w.filter(x=>x.memberId===m.id&&x.type===ex).reduce((s,x)=>s+(parseFloat(x.count)||0),0)}));
-      const tot=mt.reduce((s,x)=>s+x.v,0);
-      const pct=Math.min(tot/g*100,100);
-      const exc=tot>g;
-      const top=Math.max(...mt.map(x=>x.v),0.001);
+      const ut=u(ex)
+      const tot=w.filter(x=>x.type===ex).reduce((s,x)=>s+(parseFloat(x.count)||0),0)
+      const pct=Math.min(tot/g*100,100)
+      const exc=tot>g
       html+=`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
           <div><div class="card-title">${ex}</div><div class="card-sub">Goal: ${fn(g)} ${ut}</div></div>
@@ -387,106 +416,151 @@ function rMonthly(){
         </div>
         <div class="ptrack"><div class="pfill${exc?' over':''}" style="width:${Math.min(pct,100)}%"></div></div>
         <div class="pct-text">${fn(tot)} / ${fn(g)} ${ut} &mdash; ${Math.round(tot/g*100)}%</div>
-        <hr class="divider" style="margin:12px 0 10px"/>
-        ${mt.map(({m,v})=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-          <div style="width:22px;height:22px;flex-shrink:0">${av(m.tone,22)}</div>
-          <div style="font-size:12px;color:var(--ink2);width:54px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:-apple-system,sans-serif">${m.name}</div>
-          <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(v/top*100)}%"></div></div>
-          <div style="font-size:12px;color:var(--ink3);width:58px;text-align:right;flex-shrink:0;font-family:-apple-system,sans-serif">${fn(v)} ${ut}</div>
-        </div>`).join('')}
-      </div>`;
-    });
+      </div>`
+    })
   } else {
-    html+=`<div style="text-align:center;padding:1.5rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">Set exercises above to track progress.</div>`;
+    html+=`<div style="text-align:center;padding:1.5rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">Set exercises above to track your progress.</div>`
   }
 
-  html+=`<div class="ornament">&#10022; &#10022; &#10022;</div>`;
-  html+=`<div class="section-label">${MO[mo]} &mdash; day by day</div><div class="day-grid">`;
+  html+=`<div class="ornament">&#10022; &#10022; &#10022;</div>`
+  html+=`<div class="section-label">${MO[mo]} &mdash; day by day</div><div class="day-grid">`
   for(let d=1;d<=days;d++){
-    const e=w.filter(x=>x.day===d),has=e.length>0,isT=d===todayDay,isFut=todayDay&&d>todayDay;
-    html+=`<div class="day-btn${has?' has':''}${isT?' today':''}${isFut?' fut':''}" onclick="dayModal(${d},${mo},${yr})">${d}${has?'<div class="dot"></div>':''}</div>`;
+    const has=w.some(x=>x.day===d),isT=d===todayDay,isFut=todayDay&&d>todayDay
+    html+=`<div class="day-btn${has?' has':''}${isT?' today':''}${isFut?' fut':''}" onclick="dayModal(${d},${mo},${yr})">${d}${has?'<div class="dot"></div>':''}</div>`
   }
-  html+=`</div>`;
+  html+=`</div>`
 
-  const byType={};
-  w.forEach(x=>{if(!byType[x.type])byType[x.type]=0;byType[x.type]+=(parseFloat(x.count)||0);});
-  const rows=Object.entries(byType).sort((a,b)=>b[1]-a[1]);
+  const byType={}
+  w.forEach(x=>{if(!byType[x.type])byType[x.type]=0;byType[x.type]+=(parseFloat(x.count)||0)})
+  const rows=Object.entries(byType).sort((a,b)=>b[1]-a[1])
   if(rows.length){
-    html+=`<div class="section-label">${MO[mo]} totals</div>`;
-    html+=rows.map(([type,tot])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);margin-bottom:6px">
-      <span style="font-size:13px;color:var(--ink2);font-family:-apple-system,sans-serif">${type}</span>
-      <span style="font-size:13px;color:var(--gold);font-family:-apple-system,sans-serif">${fn(tot)} ${u(type)}</span>
-    </div>`).join('');
+    html+=`<div class="section-label">${MO[mo]} totals</div>`
+    html+=rows.map(([type,tot])=>`
+      <div style="display:flex;justify-content:space-between;padding:9px 14px;background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);margin-bottom:6px">
+        <span style="font-size:13px;color:var(--ink2);font-family:-apple-system,sans-serif">${type}</span>
+        <span style="font-size:13px;color:var(--gold);font-family:-apple-system,sans-serif">${fn(tot)} ${u(type)}</span>
+      </div>`).join('')
   }
-  document.getElementById('mo-content').innerHTML=html;
+  document.getElementById('mo-content').innerHTML=html
 }
 
 function saveCh(){
-  const ex1=document.getElementById('ch-ex1').value;
-  const g1=parseFloat(document.getElementById('ch-g1').value);
-  const ex2=document.getElementById('ch-ex2').value;
-  const g2=parseFloat(document.getElementById('ch-g2').value);
+  const ex1=document.getElementById('ch-ex1').value
+  const g1=parseFloat(document.getElementById('ch-g1').value)
+  const ex2=document.getElementById('ch-ex2').value
+  const g2=parseFloat(document.getElementById('ch-g2').value)
   if(!ex1||isNaN(g1)||g1<=0){alert('Enter exercise 1 and a goal.');return}
-  mch[vmo]={ex1,g1,ex2:ex2||'',g2:isNaN(g2)?0:g2};sv();rMonthly();
+  mch[vmo]={ex1,g1,ex2:ex2||'',g2:isNaN(g2)?0:g2};saveChallenges();rMonthly()
 }
 
 function dayModal(d,mo,yr){
-  const entries=mwf(mo,yr).filter(w=>w.day===d);
-  document.getElementById('mtitle').textContent=MO[mo]+' — Day '+d;
-  document.getElementById('mbody').innerHTML=entries.length
-    ?entries.map(w=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--ivory3)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:28px;height:28px">${av(w.memberTone||0,28)}</div>
-          <div><div style="font-size:12px;color:var(--ink3);font-family:-apple-system,sans-serif">${w.memberName}</div>
-          <div style="font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${w.type}</div></div>
-        </div>
+  const w=sel?mwf(mo,yr).filter(x=>x.member_id===sel.id&&x.day===d):[]
+  document.getElementById('mtitle').textContent=MO[mo]+' — Day '+d
+  document.getElementById('mbody').innerHTML=w.length
+    ?w.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--ivory3)">
+        <div style="font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${e.type}</div>
         <div style="text-align:right">
-          <div style="font-size:19px;color:var(--gold);font-family:Georgia,serif">${fn(w.count)}</div>
-          <div style="font-size:10px;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase;font-family:-apple-system,sans-serif">${w.unit}</div>
+          <div style="font-size:19px;color:var(--gold);font-family:Georgia,serif">${fn(e.count)}</div>
+          <div style="font-size:10px;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase;font-family:-apple-system,sans-serif">${e.unit}</div>
         </div>
       </div>`).join('')
-    :`<p style="font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">Nothing logged yet.</p>`;
-  document.getElementById('dmodal').style.display='flex';
+    :`<p style="font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">Nothing logged yet.</p>`
+  document.getElementById('dmodal').style.display='flex'
 }
 function closeM(){document.getElementById('dmodal').style.display='none'}
 
+// ── Leaderboard (shared) ──────────────────────────────────────────────────
 function rLB(){
-  const w=mwf(now.getMonth(),now.getFullYear());
-  const ranked=members.map(m=>({...m,total:w.filter(x=>x.memberId===m.id).reduce((s,x)=>s+(parseFloat(x.count)||0),0)})).sort((a,b)=>b.total-a.total);
-  const max=ranked[0]?.total||1;
-  const medals=['I','II','III'];
+  const w=mwf(now.getMonth(),now.getFullYear())
+  const ranked=members.map(m=>({
+    ...m,
+    total:w.filter(x=>x.member_id===m.id).reduce((s,x)=>s+(parseFloat(x.count)||0),0)
+  })).sort((a,b)=>b.total-a.total)
+  const max=ranked[0]?.total||1
+  const medals=['I','II','III']
   document.getElementById('lb').innerHTML=ranked.map((m,i)=>`
     <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);margin-bottom:8px">
       <div style="font-size:15px;font-family:Georgia,serif;color:var(--gold);width:20px;flex-shrink:0;text-align:center">${medals[i]||i+1}</div>
       <div style="width:38px;height:38px;flex-shrink:0">${av(m.tone,38)}</div>
-      <div style="flex:1;font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${m.name}</div>
+      <div style="flex:1;font-size:13px;color:${sel&&sel.id===m.id?'var(--gold)':'var(--ink)'};font-family:-apple-system,sans-serif">
+        ${m.name}${sel&&sel.id===m.id?' <span style="font-size:10px;color:var(--gold3)">(you)</span>':''}
+      </div>
       <div class="bar-wrap" style="max-width:72px"><div class="bar-fill" style="width:${Math.round(m.total/max*100)}%"></div></div>
       <div style="font-size:16px;color:var(--gold);font-family:Georgia,serif;min-width:52px;text-align:right">${fn(m.total)}</div>
-    </div>`).join('');
+    </div>`).join('')
 }
 
+// ── History (personal) ────────────────────────────────────────────────────
 function rHist(){
-  const all=[...workouts].sort((a,b)=>b.ts-a.ts);
+  if(!sel){
+    document.getElementById('hist').innerHTML=`<div class="no-sel">Select your name on the Log tab first.<span>Your history will appear here</span></div>`
+    return
+  }
+  const all=[...workouts].filter(w=>w.member_id===sel.id).sort((a,b)=>b.ts-a.ts)
   document.getElementById('hist').innerHTML=all.length
     ?all.slice(0,60).map(w=>`<div class="logitem">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:34px;height:34px;flex-shrink:0">${av(w.memberTone||0,34)}</div>
-          <div>
-            <div style="font-size:12px;color:var(--ink3);font-family:-apple-system,sans-serif">${w.memberName}</div>
-            <div style="font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${w.type}</div>
-            <div style="font-size:10px;color:var(--ink3);letter-spacing:.5px;font-family:-apple-system,sans-serif;text-transform:uppercase">${MO[w.month]} Day ${w.day}</div>
-          </div>
+        <div>
+          <div style="font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${w.type}</div>
+          <div style="font-size:10px;color:var(--ink3);letter-spacing:.5px;font-family:-apple-system,sans-serif;text-transform:uppercase">${MO[w.month]} Day ${w.day}</div>
         </div>
         <div style="text-align:right">
           <div style="font-size:20px;color:var(--gold);font-family:Georgia,serif">${fn(w.count)}</div>
           <div style="font-size:10px;color:var(--ink3);font-family:-apple-system,sans-serif;text-transform:uppercase;letter-spacing:.5px">${w.unit}</div>
         </div>
       </div>`).join('')
-    :`<div style="text-align:center;padding:2.5rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">No entries yet.<br/><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Go move.</span></div>`;
+    :`<div style="text-align:center;padding:2.5rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">No entries yet.<br/><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Go move.</span></div>`
 }
 
-document.getElementById('hdr').textContent=now.toLocaleString('default',{month:'long',year:'numeric'});
-rPicker();
+// ── Members tab (shared) ──────────────────────────────────────────────────
+function rMembers(){
+  document.getElementById('members-list').innerHTML=members.map(m=>`
+    <div class="mbr-row">
+      <div style="width:38px;height:38px;flex-shrink:0">${av(m.tone,38)}</div>
+      <div style="flex:1;font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${m.name}</div>
+      <button class="btn btn-xs" onclick="openRename('${m.id}')" style="margin-right:6px">Rename</button>
+      <button class="btn btn-xs" onclick="removeMember('${m.id}')" style="opacity:.5">Remove</button>
+    </div>`).join('')
+}
+
+async function addMember(){
+  const name=document.getElementById('new-name').value.trim()
+  if(!name){alert('Enter a name.');return}
+  const tone=parseInt(document.getElementById('new-tone').value)||0
+  await db.from('family_members').insert({name,tone})
+  document.getElementById('new-name').value=''
+}
+
+async function removeMember(id){
+  if(!confirm('Remove this member and all their data?'))return
+  await db.from('family_members').delete().eq('id',id)
+  if(sel&&sel.id===id){sel=null;localStorage.removeItem('bjxm_sel_id')}
+}
+
+// ── Rename modal ──────────────────────────────────────────────────────────
+function openRename(id){
+  const m=members.find(x=>x.id===id);renameId=id;renameTone=m.tone||0
+  document.getElementById('rename-input').value=m.name
+  document.getElementById('tone-picker').innerHTML=TONES.map((t,i)=>`
+    <div onclick="pickTone(${i})" id="tp-${i}" style="cursor:pointer;border-radius:50%;border:2.5px solid ${i===renameTone?'#B8922A':'transparent'};padding:2px">
+      ${av(i,36)}
+    </div>`).join('')
+  document.getElementById('rmodal').style.display='flex'
+  setTimeout(()=>document.getElementById('rename-input').focus(),80)
+}
+function pickTone(i){
+  renameTone=i
+  TONES.forEach((_,idx)=>{const el=document.getElementById('tp-'+idx);if(el)el.style.border=`2.5px solid ${idx===i?'#B8922A':'transparent'}`})
+}
+async function saveRename(){
+  const name=document.getElementById('rename-input').value.trim()
+  if(!name){alert('Enter a name.');return}
+  await db.from('family_members').update({name,tone:renameTone}).eq('id',renameId)
+  closeR()
+}
+function closeR(){document.getElementById('rmodal').style.display='none'}
+
+// ── Start ─────────────────────────────────────────────────────────────────
+init()
 </script>
 </body>
 </html>
