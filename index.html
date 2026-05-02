@@ -1,16 +1,492 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#6366f1" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>BJsxM Fitness Challenge</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BJxM Fitness Challenge</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ivory:#FAF7F2;--ivory2:#F2EDE3;--ivory3:#E8E0D0;
+  --ink:#1C1712;--ink2:#4A4035;--ink3:#8A7D6B;
+  --gold:#B8922A;--gold2:#D4A843;--gold3:#F0D080;
+  --cream:#FFFCF5;--r:10px;--rl:16px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --ivory:#1A1710;--ivory2:#232018;--ivory3:#2E2A20;
+    --ink:#F0EAE0;--ink2:#C8BEA8;--ink3:#8A7D6B;
+    --gold:#D4A843;--gold2:#E8C060;--gold3:#8A6820;
+    --cream:#201E18;
+  }
+}
+body{font-family:'Georgia',serif;background:var(--ivory);color:var(--ink);min-height:100vh}
+.app{max-width:480px;margin:0 auto;padding:0 16px 60px}
+
+.header{text-align:center;padding:32px 0 22px;border-bottom:1px solid var(--ivory3);margin-bottom:0}
+.header-title{font-size:24px;font-weight:400;letter-spacing:2.5px;color:var(--ink);text-transform:uppercase}
+.header-sub{font-size:10px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-top:5px;font-family:-apple-system,sans-serif}
+.header-rule{display:flex;align-items:center;gap:8px;margin:12px auto 0;width:160px}
+.header-rule::before,.header-rule::after{content:'';flex:1;height:0.5px;background:var(--gold)}
+.header-rule span{color:var(--gold);font-size:11px}
+.header-date{font-size:10px;color:var(--ink3);letter-spacing:1.5px;text-transform:uppercase;margin-top:10px;font-family:-apple-system,sans-serif}
+
+.tabs{display:flex;border-bottom:0.5px solid var(--ivory3);margin-bottom:1.5rem;background:var(--cream)}
+.tab{flex:1;padding:11px 2px;font-size:10px;font-weight:400;color:var(--ink3);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;text-align:center;letter-spacing:.8px;font-family:-apple-system,sans-serif;text-transform:uppercase}
+.tab.active{color:var(--gold);border-bottom:2px solid var(--gold)}
+.tab:hover{color:var(--gold2)}
+
+.sec{display:none}.sec.active{display:block}
+
+.section-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-family:-apple-system,sans-serif;margin-bottom:12px}
+
+.mcard{background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);padding:14px 6px 12px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative}
+.mcard:hover{border-color:var(--gold3)}
+.mcard.sel{border:1.5px solid var(--gold);background:var(--ivory2)}
+
+.card{background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:400;color:var(--ink);letter-spacing:.3px;margin-bottom:2px}
+.card-sub{font-size:11px;color:var(--ink3);font-family:-apple-system,sans-serif;letter-spacing:.3px}
+
+.ptrack{height:6px;background:var(--ivory3);border-radius:3px;overflow:hidden;margin:10px 0 6px}
+.pfill{height:6px;border-radius:3px;transition:width .5s;background:var(--gold)}
+.pfill.over{background:#8D5524}
+.pct-text{font-size:11px;color:var(--ink3);font-family:-apple-system,sans-serif}
+
+.badge{display:inline-block;font-size:10px;padding:3px 10px;border-radius:20px;font-weight:400;letter-spacing:.5px;font-family:-apple-system,sans-serif}
+.done-badge{background:#EAF3DE;color:#3B6D11}
+.over-badge{background:#FAEEDA;color:#854F0B}
+
+.wtype{padding:6px 13px;border-radius:20px;border:0.5px solid var(--ivory3);font-size:11px;cursor:pointer;background:transparent;color:var(--ink3);margin:0 5px 6px 0;font-family:-apple-system,sans-serif;letter-spacing:.3px}
+.wtype.sel{border-color:var(--gold);background:var(--ivory2);color:var(--gold)}
+.wtype:hover{border-color:var(--gold3)}
+
+label,.lbl{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:4px;font-family:-apple-system,sans-serif}
+input,select{width:100%;padding:9px 12px;border:0.5px solid var(--ivory3);border-radius:var(--r);background:var(--cream);color:var(--ink);font-size:13px;outline:none;font-family:-apple-system,sans-serif}
+input:focus,select:focus{border-color:var(--gold)}
+
+.btn{width:100%;padding:11px;border-radius:var(--r);border:0.5px solid var(--ivory3);background:transparent;font-size:11px;letter-spacing:.8px;text-transform:uppercase;cursor:pointer;color:var(--ink2);font-family:-apple-system,sans-serif}
+.btn:hover{background:var(--ivory2)}
+.btn-gold{background:var(--gold);color:var(--cream);border-color:var(--gold)}
+.btn-gold:hover{background:var(--gold2);border-color:var(--gold2)}
+.btn-sm{width:auto;padding:6px 14px;font-size:10px}
+.btn-xs{width:auto;padding:4px 10px;font-size:10px}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+.logitem{background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1rem}
+.day-btn{padding:7px 2px;font-size:11px;border:0.5px solid var(--ivory3);border-radius:6px;cursor:pointer;background:var(--cream);color:var(--ink3);text-align:center;font-family:-apple-system,sans-serif}
+.day-btn.has{background:var(--ivory2);color:var(--gold);border-color:var(--gold3)}
+.day-btn.today{border-color:var(--gold);color:var(--gold);font-weight:500}
+.day-btn.fut{opacity:.3;pointer-events:none}
+.dot{width:3px;height:3px;border-radius:50%;background:var(--gold);margin:2px auto 0}
+
+.month-pill{padding:5px 12px;font-size:10px;letter-spacing:.8px;text-transform:uppercase;border:0.5px solid var(--ivory3);border-radius:20px;cursor:pointer;background:transparent;color:var(--ink3);margin:0 5px 7px 0;font-family:-apple-system,sans-serif}
+.month-pill.active{background:var(--gold);color:var(--cream);border-color:var(--gold)}
+.month-pill:hover{border-color:var(--gold3)}
+
+.mbr-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);margin-bottom:8px}
+
+.bar-wrap{flex:1;height:5px;background:var(--ivory3);border-radius:3px;overflow:hidden}
+.bar-fill{height:5px;border-radius:3px;background:var(--gold)}
+
+.ornament{text-align:center;color:var(--gold3);font-size:12px;letter-spacing:6px;margin:14px 0 18px}
+
+.divider{border:none;border-top:0.5px solid var(--ivory3);margin:14px 0}
+
+.modal-ov{position:fixed;inset:0;background:rgba(28,23,18,0.6);display:flex;align-items:center;justify-content:center;z-index:99;padding:16px}
+.modal{background:var(--cream);border-radius:var(--rl);padding:22px;width:100%;max-width:340px;border:0.5px solid var(--ivory3)}
+.modal-title{font-size:16px;font-weight:400;color:var(--ink);margin-bottom:14px;letter-spacing:.3px}
+
+.ch-grid{display:grid;grid-template-columns:1fr 100px;gap:8px;align-items:center;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <div class="header-title">BJxM</div>
+  <div class="header-sub">Fitness Challenge</div>
+  <div class="header-rule"><span>&#10022;</span></div>
+  <div class="header-date">In honor of Betty Jean &amp; MacArthur &mdash; <span id="hdr"></span></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="go('log')">Log</button>
+  <button class="tab" onclick="go('monthly')">Monthly</button>
+  <button class="tab" onclick="go('leaders')">Leaders</button>
+  <button class="tab" onclick="go('history')">History</button>
+  <button class="tab" onclick="go('members')">Members</button>
+</div>
+
+<!-- LOG -->
+<div id="tab-log" class="sec active">
+  <div class="section-label">Who worked out? <span style="color:var(--ink3);font-size:9px;letter-spacing:0;text-transform:none">(&#9998; to rename)</span></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:1.5rem" id="mpicker"></div>
+  <div id="lform" style="display:none">
+    <div class="section-label" style="margin-top:4px">Activity</div>
+    <div style="display:flex;flex-wrap:wrap;margin-bottom:14px">
+      <button class="wtype sel" onclick="st(this,'Squats')">Squats</button>
+      <button class="wtype" onclick="st(this,'Jump Rope')">Jump Rope</button>
+      <button class="wtype" onclick="st(this,'Bicep Curls')">Bicep Curls</button>
+      <button class="wtype" onclick="st(this,'Miles')">Miles</button>
+      <button class="wtype" onclick="st(this,'Steps')">Steps</button>
+      <button class="wtype" onclick="st(this,'Push-ups')">Push-ups</button>
+      <button class="wtype" onclick="st(this,'Sit-ups')">Sit-ups</button>
+      <button class="wtype" onclick="st(this,'Lunges')">Lunges</button>
+      <button class="wtype" onclick="st(this,'Walking')">Walking</button>
+      <button class="wtype" onclick="st(this,'Running')">Running</button>
+      <button class="wtype" onclick="st(this,'Other')">Other</button>
+    </div>
+    <div class="row2" style="margin-bottom:12px">
+      <div><label id="amt-lbl">Amount (reps)</label><input type="number" id="amt" min="0" step="any" placeholder="e.g. 100"/></div>
+      <div><label>Day</label><select id="day-sel"></select></div>
+    </div>
+    <div class="row2">
+      <button class="btn btn-gold" onclick="logIt()">Save</button>
+      <button class="btn" onclick="cancel()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MONTHLY -->
+<div id="tab-monthly" class="sec">
+  <div style="display:flex;flex-wrap:wrap;margin-bottom:12px" id="mpills"></div>
+  <div id="mo-content"></div>
+</div>
+
+<!-- LEADERS -->
+<div id="tab-leaders" class="sec">
+  <div class="section-label">This month&#8217;s standings</div>
+  <div id="lb"></div>
+</div>
+
+<!-- HISTORY -->
+<div id="tab-history" class="sec">
+  <div class="section-label">All entries</div>
+  <div id="hist"></div>
+</div>
+
+<!-- MEMBERS -->
+<div id="tab-members" class="sec">
+  <div class="section-label">Family members</div>
+  <div id="members-list"></div>
+  <hr class="divider"/>
+  <div class="section-label">Add a member</div>
+  <div class="row2" style="margin-bottom:10px">
+    <div><label>Name</label><input type="text" id="new-name" placeholder="e.g. Joy"/></div>
+    <div><label>Skin tone</label>
+      <select id="new-tone">
+        <option value="0">Shade 1</option><option value="1">Shade 2</option>
+        <option value="2" selected>Shade 3</option><option value="3">Shade 4</option>
+        <option value="4">Shade 5</option><option value="5">Shade 6</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn btn-gold" onclick="addMember()">Add member</button>
+</div>
+
+<!-- Day modal -->
+<div id="dmodal" class="modal-ov" style="display:none" onclick="if(event.target===this)closeM()">
+  <div class="modal">
+    <div class="modal-title" id="mtitle"></div>
+    <div id="mbody"></div>
+    <button class="btn btn-sm" style="margin-top:14px" onclick="closeM()">Close</button>
+  </div>
+</div>
+
+<!-- Rename modal -->
+<div id="rmodal" class="modal-ov" style="display:none" onclick="if(event.target===this)closeR()">
+  <div class="modal">
+    <div class="modal-title">Rename member</div>
+    <label>Name</label>
+    <input type="text" id="rename-input" style="margin-bottom:14px"/>
+    <div class="section-label" style="margin-bottom:8px">Skin tone</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px" id="tone-picker"></div>
+    <div class="row2">
+      <button class="btn btn-gold" onclick="saveRename()">Save</button>
+      <button class="btn" onclick="closeR()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TONES=[
+  {skin:'#FDDBB4',hair:'#5C3317'},
+  {skin:'#E8B88A',hair:'#3B2005'},
+  {skin:'#C68642',hair:'#2C1A0E'},
+  {skin:'#8D5524',hair:'#1A0A00'},
+  {skin:'#6B3A2A',hair:'#120700'},
+  {skin:'#3B1F0E',hair:'#0A0400'},
+];
+const MO=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const ACTS=['Squats','Jump Rope','Bicep Curls','Miles','Steps','Push-ups','Sit-ups','Lunges','Walking','Running','Other'];
+const UN={Miles:'miles',Steps:'steps',Running:'miles',Walking:'miles',Squats:'reps','Jump Rope':'reps','Bicep Curls':'reps','Push-ups':'reps','Sit-ups':'reps',Lunges:'reps',Other:'count'};
+const u=t=>UN[t]||'count';
+const fn=n=>{const f=parseFloat(n);return isNaN(f)?'0':f%1===0?f.toLocaleString():f.toLocaleString(undefined,{maximumFractionDigits:2})};
+const dim=(mo,yr)=>new Date(yr,mo+1,0).getDate();
+
+function av(tone,size=44){
+  const t=TONES[tone]||TONES[2];const c=size/2;const r=size*.4;
+  return`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="${c}" cy="${c}" r="${c}" fill="#F2EDE3"/>
+    <ellipse cx="${c}" cy="${c+r*.2}" rx="${r*.6}" ry="${r*.72}" fill="${t.skin}"/>
+    <ellipse cx="${c}" cy="${c-.05*r}" rx="${r*.4}" ry="${r*.46}" fill="${t.skin}"/>
+    <ellipse cx="${c}" cy="${c-.3*r}" rx="${r*.46}" ry="${r*.36}" fill="${t.hair}"/>
+    <ellipse cx="${c}" cy="${c+r*1.05}" rx="${r*.7}" ry="${r*.5}" fill="${t.skin}"/>
+  </svg>`;
+}
+
+let members=JSON.parse(localStorage.getItem('bjxm_final_m')||'null');
+let workouts=JSON.parse(localStorage.getItem('bjxm_final_w')||'[]');
+let mch=JSON.parse(localStorage.getItem('bjxm_final_ch')||'null');
+
+if(!members)members=[
+  {id:1,name:'You',tone:2},
+  {id:2,name:'Member 1',tone:4},
+  {id:3,name:'Member 2',tone:0}
+];
+if(!mch)mch={
+  3:{ex1:'Squats',g1:1500,ex2:'Miles',g2:100},
+  4:{ex1:'Jump Rope',g1:3100,ex2:'Bicep Curls',g2:50}
+};
+
+const now=new Date();
+let sel=null,wtype='Squats',vmo=now.getMonth(),vyr=now.getFullYear();
+let renameId=null,renameTone=0;
+
+const sv=()=>{
+  localStorage.setItem('bjxm_final_m',JSON.stringify(members));
+  localStorage.setItem('bjxm_final_w',JSON.stringify(workouts));
+  localStorage.setItem('bjxm_final_ch',JSON.stringify(mch));
+};
+const mwf=(mo,yr)=>{const s=new Date(yr,mo,1).getTime(),e=new Date(yr,mo+1,0,23,59,59,999).getTime();return workouts.filter(w=>w.ts>=s&&w.ts<=e)};
+
+function go(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const map={log:0,monthly:1,leaders:2,history:3,members:4};
+  document.querySelectorAll('.tab')[map[name]].classList.add('active');
+  ({log:rPicker,monthly:rMonthly,leaders:rLB,history:rHist,members:rMembers})[name]();
+}
+
+function rPicker(){
+  document.getElementById('mpicker').innerHTML=members.map(m=>`
+    <div class="mcard${sel&&sel.id===m.id?' sel':''}" onclick="pick(${m.id})">
+      <button style="position:absolute;top:5px;right:6px;font-size:11px;color:var(--ink3);background:none;border:none;cursor:pointer;line-height:1" onclick="event.stopPropagation();openRename(${m.id})">&#9998;</button>
+      <div style="margin:0 auto 7px;width:44px;height:44px">${av(m.tone,44)}</div>
+      <div style="font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px;font-family:-apple-system,sans-serif">${m.name}</div>
+    </div>`).join('');
+}
+
+function pick(id){
+  sel=members.find(m=>m.id===id);rPicker();
+  document.getElementById('lform').style.display='block';updLbl();
+  const mo=now.getMonth(),yr=now.getFullYear(),days=dim(mo,yr),today=now.getDate();
+  const ds=document.getElementById('day-sel');ds.innerHTML='';
+  for(let d=1;d<=days;d++){const o=document.createElement('option');o.value=d;o.textContent='Day '+d+(d===today?' (today)':'');if(d===today)o.selected=true;ds.appendChild(o);}
+}
+
+function cancel(){sel=null;document.getElementById('lform').style.display='none';rPicker()}
+function st(btn,type){document.querySelectorAll('.wtype').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');wtype=type;updLbl()}
+function updLbl(){document.getElementById('amt-lbl').textContent='Amount ('+u(wtype)+')';}
+
+function logIt(){
+  if(!sel)return;
+  const count=parseFloat(document.getElementById('amt').value);
+  if(!count||count<=0){alert('Enter a number greater than 0.');return}
+  const day=parseInt(document.getElementById('day-sel').value);
+  const mo=now.getMonth(),yr=now.getFullYear();
+  workouts.push({id:Date.now(),memberId:sel.id,memberName:sel.name,memberTone:sel.tone,type:wtype,count,unit:u(wtype),day,month:mo,year:yr,ts:new Date(yr,mo,day).getTime()});
+  sv();document.getElementById('amt').value='';cancel();go('monthly');
+}
+
+function openRename(id){
+  const m=members.find(x=>x.id===id);renameId=id;renameTone=m.tone||0;
+  document.getElementById('rename-input').value=m.name;
+  document.getElementById('tone-picker').innerHTML=TONES.map((t,i)=>`
+    <div onclick="pickTone(${i})" id="tp-${i}" style="cursor:pointer;border-radius:50%;border:2.5px solid ${i===renameTone?'#B8922A':'transparent'};padding:2px">
+      ${av(i,36)}
+    </div>`).join('');
+  document.getElementById('rmodal').style.display='flex';
+  setTimeout(()=>document.getElementById('rename-input').focus(),80);
+}
+function pickTone(i){
+  renameTone=i;
+  TONES.forEach((_,idx)=>{const el=document.getElementById('tp-'+idx);if(el)el.style.border=`2.5px solid ${idx===i?'#B8922A':'transparent'}`;});
+}
+function saveRename(){
+  const name=document.getElementById('rename-input').value.trim();
+  if(!name){alert('Enter a name.');return}
+  const m=members.find(x=>x.id===renameId);m.name=name;m.tone=renameTone;
+  workouts.forEach(w=>{if(w.memberId===renameId){w.memberName=name;w.memberTone=renameTone;}});
+  sv();closeR();rPicker();
+}
+function closeR(){document.getElementById('rmodal').style.display='none'}
+
+function rMembers(){
+  document.getElementById('members-list').innerHTML=members.map(m=>`
+    <div class="mbr-row">
+      <div style="width:38px;height:38px;flex-shrink:0">${av(m.tone,38)}</div>
+      <div style="flex:1;font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${m.name}</div>
+      <button class="btn btn-xs" onclick="openRename(${m.id})" style="margin-right:6px">Rename</button>
+      <button class="btn btn-xs" onclick="removeMember(${m.id})" style="opacity:.5">Remove</button>
+    </div>`).join('');
+}
+function addMember(){
+  const name=document.getElementById('new-name').value.trim();
+  if(!name){alert('Enter a name.');return}
+  const tone=parseInt(document.getElementById('new-tone').value)||0;
+  members.push({id:Date.now(),name,tone});sv();
+  document.getElementById('new-name').value='';rMembers();
+}
+function removeMember(id){
+  if(!confirm('Remove this member and all their data?'))return;
+  members=members.filter(m=>m.id!==id);
+  workouts=workouts.filter(w=>w.memberId!==id);
+  sv();rMembers();
+}
+
+function rMonthly(){
+  document.getElementById('mpills').innerHTML=MO.map((n,i)=>`<button class="month-pill${i===vmo?' active':''}" onclick="vmo=${i};rMonthly()">${n.slice(0,3)}</button>`).join('');
+  const mo=vmo,yr=vyr,w=mwf(mo,yr),days=dim(mo,yr);
+  const todayDay=now.getMonth()===mo&&now.getFullYear()===yr?now.getDate():null;
+  const ch=mch[mo]||{};
+
+  let html=`<div class="card">
+    <div class="card-title">${MO[mo]} Challenge</div>
+    <div class="card-sub" style="margin-bottom:14px">Set exercises &amp; goals</div>
+    <label>Exercise 1</label>
+    <div class="ch-grid" style="margin-bottom:10px">
+      <select id="ch-ex1">${ACTS.map(a=>`<option${a===(ch.ex1||'Squats')?' selected':''}>${a}</option>`).join('')}</select>
+      <input type="number" id="ch-g1" min="1" step="any" placeholder="Goal" value="${ch.g1||''}"/>
+    </div>
+    <label>Exercise 2</label>
+    <div class="ch-grid" style="margin-bottom:14px">
+      <select id="ch-ex2">${ACTS.map(a=>`<option${a===(ch.ex2||'Miles')?' selected':''}>${a}</option>`).join('')}</select>
+      <input type="number" id="ch-g2" min="1" step="any" placeholder="Goal" value="${ch.g2||''}"/>
+    </div>
+    <button class="btn btn-gold btn-sm" onclick="saveCh()">Save challenge</button>
+  </div>`;
+
+  if(ch.ex1&&ch.g1){
+    [{ex:ch.ex1,g:ch.g1},{ex:ch.ex2,g:ch.g2}].filter(x=>x.ex&&x.g).forEach(({ex,g})=>{
+      const ut=u(ex);
+      const mt=members.map(m=>({m,v:w.filter(x=>x.memberId===m.id&&x.type===ex).reduce((s,x)=>s+(parseFloat(x.count)||0),0)}));
+      const tot=mt.reduce((s,x)=>s+x.v,0);
+      const pct=Math.min(tot/g*100,100);
+      const exc=tot>g;
+      const top=Math.max(...mt.map(x=>x.v),0.001);
+      html+=`<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div><div class="card-title">${ex}</div><div class="card-sub">Goal: ${fn(g)} ${ut}</div></div>
+          ${exc?`<span class="badge over-badge">+${fn(tot-g)} over!</span>`:pct>=100?'<span class="badge done-badge">Complete</span>':''}
+        </div>
+        <div class="ptrack"><div class="pfill${exc?' over':''}" style="width:${Math.min(pct,100)}%"></div></div>
+        <div class="pct-text">${fn(tot)} / ${fn(g)} ${ut} &mdash; ${Math.round(tot/g*100)}%</div>
+        <hr class="divider" style="margin:12px 0 10px"/>
+        ${mt.map(({m,v})=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:22px;height:22px;flex-shrink:0">${av(m.tone,22)}</div>
+          <div style="font-size:12px;color:var(--ink2);width:54px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:-apple-system,sans-serif">${m.name}</div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(v/top*100)}%"></div></div>
+          <div style="font-size:12px;color:var(--ink3);width:58px;text-align:right;flex-shrink:0;font-family:-apple-system,sans-serif">${fn(v)} ${ut}</div>
+        </div>`).join('')}
+      </div>`;
+    });
+  } else {
+    html+=`<div style="text-align:center;padding:1.5rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">Set exercises above to track progress.</div>`;
+  }
+
+  html+=`<div class="ornament">&#10022; &#10022; &#10022;</div>`;
+  html+=`<div class="section-label">${MO[mo]} &mdash; day by day</div><div class="day-grid">`;
+  for(let d=1;d<=days;d++){
+    const e=w.filter(x=>x.day===d),has=e.length>0,isT=d===todayDay,isFut=todayDay&&d>todayDay;
+    html+=`<div class="day-btn${has?' has':''}${isT?' today':''}${isFut?' fut':''}" onclick="dayModal(${d},${mo},${yr})">${d}${has?'<div class="dot"></div>':''}</div>`;
+  }
+  html+=`</div>`;
+
+  const byType={};
+  w.forEach(x=>{if(!byType[x.type])byType[x.type]=0;byType[x.type]+=(parseFloat(x.count)||0);});
+  const rows=Object.entries(byType).sort((a,b)=>b[1]-a[1]);
+  if(rows.length){
+    html+=`<div class="section-label">${MO[mo]} totals</div>`;
+    html+=rows.map(([type,tot])=>`<div style="display:flex;justify-content:space-between;padding:9px 14px;background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);margin-bottom:6px">
+      <span style="font-size:13px;color:var(--ink2);font-family:-apple-system,sans-serif">${type}</span>
+      <span style="font-size:13px;color:var(--gold);font-family:-apple-system,sans-serif">${fn(tot)} ${u(type)}</span>
+    </div>`).join('');
+  }
+  document.getElementById('mo-content').innerHTML=html;
+}
+
+function saveCh(){
+  const ex1=document.getElementById('ch-ex1').value;
+  const g1=parseFloat(document.getElementById('ch-g1').value);
+  const ex2=document.getElementById('ch-ex2').value;
+  const g2=parseFloat(document.getElementById('ch-g2').value);
+  if(!ex1||isNaN(g1)||g1<=0){alert('Enter exercise 1 and a goal.');return}
+  mch[vmo]={ex1,g1,ex2:ex2||'',g2:isNaN(g2)?0:g2};sv();rMonthly();
+}
+
+function dayModal(d,mo,yr){
+  const entries=mwf(mo,yr).filter(w=>w.day===d);
+  document.getElementById('mtitle').textContent=MO[mo]+' — Day '+d;
+  document.getElementById('mbody').innerHTML=entries.length
+    ?entries.map(w=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--ivory3)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px">${av(w.memberTone||0,28)}</div>
+          <div><div style="font-size:12px;color:var(--ink3);font-family:-apple-system,sans-serif">${w.memberName}</div>
+          <div style="font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${w.type}</div></div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:19px;color:var(--gold);font-family:Georgia,serif">${fn(w.count)}</div>
+          <div style="font-size:10px;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase;font-family:-apple-system,sans-serif">${w.unit}</div>
+        </div>
+      </div>`).join('')
+    :`<p style="font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">Nothing logged yet.</p>`;
+  document.getElementById('dmodal').style.display='flex';
+}
+function closeM(){document.getElementById('dmodal').style.display='none'}
+
+function rLB(){
+  const w=mwf(now.getMonth(),now.getFullYear());
+  const ranked=members.map(m=>({...m,total:w.filter(x=>x.memberId===m.id).reduce((s,x)=>s+(parseFloat(x.count)||0),0)})).sort((a,b)=>b.total-a.total);
+  const max=ranked[0]?.total||1;
+  const medals=['I','II','III'];
+  document.getElementById('lb').innerHTML=ranked.map((m,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);margin-bottom:8px">
+      <div style="font-size:15px;font-family:Georgia,serif;color:var(--gold);width:20px;flex-shrink:0;text-align:center">${medals[i]||i+1}</div>
+      <div style="width:38px;height:38px;flex-shrink:0">${av(m.tone,38)}</div>
+      <div style="flex:1;font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${m.name}</div>
+      <div class="bar-wrap" style="max-width:72px"><div class="bar-fill" style="width:${Math.round(m.total/max*100)}%"></div></div>
+      <div style="font-size:16px;color:var(--gold);font-family:Georgia,serif;min-width:52px;text-align:right">${fn(m.total)}</div>
+    </div>`).join('');
+}
+
+function rHist(){
+  const all=[...workouts].sort((a,b)=>b.ts-a.ts);
+  document.getElementById('hist').innerHTML=all.length
+    ?all.slice(0,60).map(w=>`<div class="logitem">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;flex-shrink:0">${av(w.memberTone||0,34)}</div>
+          <div>
+            <div style="font-size:12px;color:var(--ink3);font-family:-apple-system,sans-serif">${w.memberName}</div>
+            <div style="font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${w.type}</div>
+            <div style="font-size:10px;color:var(--ink3);letter-spacing:.5px;font-family:-apple-system,sans-serif;text-transform:uppercase">${MO[w.month]} Day ${w.day}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;color:var(--gold);font-family:Georgia,serif">${fn(w.count)}</div>
+          <div style="font-size:10px;color:var(--ink3);font-family:-apple-system,sans-serif;text-transform:uppercase;letter-spacing:.5px">${w.unit}</div>
+        </div>
+      </div>`).join('')
+    :`<div style="text-align:center;padding:2.5rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">No entries yet.<br/><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Go move.</span></div>`;
+}
+
+document.getElementById('hdr').textContent=now.toLocaleString('default',{month:'long',year:'numeric'});
+rPicker();
+</script>
+</body>
 </html>
