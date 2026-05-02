@@ -212,7 +212,12 @@ input:focus,select:focus{border-color:var(--gold)}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+const DB=supabase.createClient(
+  'https://dxhoxjssilitulrrwaqk.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aG94anNzaWxpdHVscnJ3YXFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc2ODQ2MzEsImV4cCI6MjA5MzI2MDYzMX0.HH4ZEfhkuwok2keUxTvJSUeWaPZ2GLd5nrXPbjgCIJY'
+);
 const TONES=[
   {skin:'#FDDBB4',hair:'#5C3317'},
   {skin:'#E8B88A',hair:'#3B2005'},
@@ -239,32 +244,57 @@ function av(tone,size=44){
   </svg>`;
 }
 
-let members=JSON.parse(localStorage.getItem('bjxm_final_m')||'null');
-let workouts=JSON.parse(localStorage.getItem('bjxm_final_w')||'[]');
+let members=[];
+let workouts=[];
 let mch=JSON.parse(localStorage.getItem('bjxm_final_ch')||'null');
-
-if(!members)members=[
-  {id:1,name:'You',tone:2},
-  {id:2,name:'Member 1',tone:4},
-  {id:3,name:'Member 2',tone:0}
-];
-if(!mch)mch={
-  3:{ex1:'Squats',g1:1500,ex2:'Miles',g2:100},
-  4:{ex1:'Jump Rope',g1:3100,ex2:'Bicep Curls',g2:50}
-};
+if(!mch)mch={3:{ex1:'Squats',g1:1500,ex2:'Miles',g2:100},4:{ex1:'Jump Rope',g1:3100,ex2:'Bicep Curls',g2:50}};
 
 const now=new Date();
 let sel=null,wtype='Squats',vmo=now.getMonth(),vyr=now.getFullYear();
 let renameId=null,renameTone=0;
+let activeTab='log';
 
-const sv=()=>{
-  localStorage.setItem('bjxm_final_m',JSON.stringify(members));
-  localStorage.setItem('bjxm_final_w',JSON.stringify(workouts));
-  localStorage.setItem('bjxm_final_ch',JSON.stringify(mch));
-};
+const sv=()=>localStorage.setItem('bjxm_final_ch',JSON.stringify(mch));
 const mwf=(mo,yr)=>{const s=new Date(yr,mo,1).getTime(),e=new Date(yr,mo+1,0,23,59,59,999).getTime();return workouts.filter(w=>w.ts>=s&&w.ts<=e)};
 
+// map Supabase rows to the shape the rest of the code expects
+function mapWorkout(w){
+  const m=members.find(x=>x.id===w.member_id)||{};
+  return{...w,memberId:w.member_id,memberName:m.name||'',memberTone:m.tone||0};
+}
+
+async function fetchAll(){
+  const[{data:mems},{data:logs}]=await Promise.all([
+    DB.from('family_members').select('*').order('created_at'),
+    DB.from('activity_logs').select('*')
+  ]);
+  members=mems||[];
+  workouts=(logs||[]).map(mapWorkout);
+  const savedId=localStorage.getItem('bjxm_sel_id');
+  if(savedId&&!sel)sel=members.find(m=>m.id===savedId)||null;
+  else if(sel)sel=members.find(m=>m.id===sel.id)||sel;
+}
+
+function setupRealtime(){
+  DB.channel('bjxm')
+    .on('postgres_changes',{event:'*',schema:'public',table:'family_members'},async()=>{
+      await fetchAll();({log:rPicker,monthly:rMonthly,leaders:rLB,history:rHist,members:rMembers})[activeTab]?.();
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'activity_logs'},async()=>{
+      await fetchAll();({log:rPicker,monthly:rMonthly,leaders:rLB,history:rHist,members:rMembers})[activeTab]?.();
+    })
+    .subscribe();
+}
+
+async function init(){
+  await fetchAll();
+  setupRealtime();
+  document.getElementById('hdr').textContent=now.toLocaleString('default',{month:'long',year:'numeric'});
+  rPicker();
+}
+
 function go(name){
+  activeTab=name;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
@@ -275,15 +305,15 @@ function go(name){
 
 function rPicker(){
   document.getElementById('mpicker').innerHTML=members.map(m=>`
-    <div class="mcard${sel&&sel.id===m.id?' sel':''}" onclick="pick(${m.id})">
-      <button style="position:absolute;top:5px;right:6px;font-size:11px;color:var(--ink3);background:none;border:none;cursor:pointer;line-height:1" onclick="event.stopPropagation();openRename(${m.id})">&#9998;</button>
+    <div class="mcard${sel&&sel.id===m.id?' sel':''}" onclick="pick('${m.id}')">
+      <button style="position:absolute;top:5px;right:6px;font-size:11px;color:var(--ink3);background:none;border:none;cursor:pointer;line-height:1" onclick="event.stopPropagation();openRename('${m.id}')">&#9998;</button>
       <div style="margin:0 auto 7px;width:44px;height:44px">${av(m.tone,44)}</div>
       <div style="font-size:12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 6px;font-family:-apple-system,sans-serif">${m.name}</div>
     </div>`).join('');
 }
 
 function pick(id){
-  sel=members.find(m=>m.id===id);rPicker();
+  sel=members.find(m=>m.id===id);localStorage.setItem('bjxm_sel_id',id);rPicker();
   document.getElementById('lform').style.display='block';updLbl();
   const mo=now.getMonth(),yr=now.getFullYear(),days=dim(mo,yr),today=now.getDate();
   const ds=document.getElementById('day-sel');ds.innerHTML='';
@@ -294,14 +324,14 @@ function cancel(){sel=null;document.getElementById('lform').style.display='none'
 function st(btn,type){document.querySelectorAll('.wtype').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');wtype=type;updLbl()}
 function updLbl(){document.getElementById('amt-lbl').textContent='Amount ('+u(wtype)+')';}
 
-function logIt(){
+async function logIt(){
   if(!sel)return;
   const count=parseFloat(document.getElementById('amt').value);
   if(!count||count<=0){alert('Enter a number greater than 0.');return}
   const day=parseInt(document.getElementById('day-sel').value);
   const mo=now.getMonth(),yr=now.getFullYear();
-  workouts.push({id:Date.now(),memberId:sel.id,memberName:sel.name,memberTone:sel.tone,type:wtype,count,unit:u(wtype),day,month:mo,year:yr,ts:new Date(yr,mo,day).getTime()});
-  sv();document.getElementById('amt').value='';cancel();go('monthly');
+  await DB.from('activity_logs').insert({member_id:sel.id,type:wtype,count,unit:u(wtype),day,month:mo,year:yr,ts:new Date(yr,mo,day).getTime()});
+  document.getElementById('amt').value='';cancel();go('monthly');
 }
 
 function openRename(id){
@@ -318,12 +348,11 @@ function pickTone(i){
   renameTone=i;
   TONES.forEach((_,idx)=>{const el=document.getElementById('tp-'+idx);if(el)el.style.border=`2.5px solid ${idx===i?'#B8922A':'transparent'}`;});
 }
-function saveRename(){
+async function saveRename(){
   const name=document.getElementById('rename-input').value.trim();
   if(!name){alert('Enter a name.');return}
-  const m=members.find(x=>x.id===renameId);m.name=name;m.tone=renameTone;
-  workouts.forEach(w=>{if(w.memberId===renameId){w.memberName=name;w.memberTone=renameTone;}});
-  sv();closeR();rPicker();
+  await DB.from('family_members').update({name,tone:renameTone}).eq('id',renameId);
+  closeR();
 }
 function closeR(){document.getElementById('rmodal').style.display='none'}
 
@@ -332,22 +361,21 @@ function rMembers(){
     <div class="mbr-row">
       <div style="width:38px;height:38px;flex-shrink:0">${av(m.tone,38)}</div>
       <div style="flex:1;font-size:13px;color:var(--ink);font-family:-apple-system,sans-serif">${m.name}</div>
-      <button class="btn btn-xs" onclick="openRename(${m.id})" style="margin-right:6px">Rename</button>
-      <button class="btn btn-xs" onclick="removeMember(${m.id})" style="opacity:.5">Remove</button>
+      <button class="btn btn-xs" onclick="openRename('${m.id}')" style="margin-right:6px">Rename</button>
+      <button class="btn btn-xs" onclick="removeMember('${m.id}')" style="opacity:.5">Remove</button>
     </div>`).join('');
 }
-function addMember(){
+async function addMember(){
   const name=document.getElementById('new-name').value.trim();
   if(!name){alert('Enter a name.');return}
   const tone=parseInt(document.getElementById('new-tone').value)||0;
-  members.push({id:Date.now(),name,tone});sv();
-  document.getElementById('new-name').value='';rMembers();
+  await DB.from('family_members').insert({name,tone});
+  document.getElementById('new-name').value='';
 }
-function removeMember(id){
+async function removeMember(id){
   if(!confirm('Remove this member and all their data?'))return;
-  members=members.filter(m=>m.id!==id);
-  workouts=workouts.filter(w=>w.memberId!==id);
-  sv();rMembers();
+  await DB.from('family_members').delete().eq('id',id);
+  if(sel&&sel.id===id){sel=null;localStorage.removeItem('bjxm_sel_id');}
 }
 
 function rMonthly(){
@@ -485,8 +513,7 @@ function rHist(){
     :`<div style="text-align:center;padding:2.5rem;font-size:13px;color:var(--ink3);font-family:-apple-system,sans-serif">No entries yet.<br/><span style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold)">Go move.</span></div>`;
 }
 
-document.getElementById('hdr').textContent=now.toLocaleString('default',{month:'long',year:'numeric'});
-rPicker();
+init();
 </script>
 </body>
 </html>
