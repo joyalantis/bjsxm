@@ -351,8 +351,12 @@ function pickTone(i){
 async function saveRename(){
   const name=document.getElementById('rename-input').value.trim();
   if(!name){alert('Enter a name.');return}
-  await DB.from('family_members').update({name,tone:renameTone}).eq('id',renameId);
+  const{error}=await DB.from('family_members').update({name,tone:renameTone}).eq('id',renameId);
+  if(error){alert('Could not save: '+error.message);return;}
   closeR();
+  await fetchAll();
+  rPicker();
+  rMembers();
 }
 function closeR(){document.getElementById('rmodal').style.display='none'}
 
