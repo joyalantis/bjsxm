@@ -482,7 +482,7 @@ function rLB(){
   const w=mwf(now.getMonth(),now.getFullYear());
   const ranked=members.map(m=>({...m,total:w.filter(x=>x.memberId===m.id).reduce((s,x)=>s+(parseFloat(x.count)||0),0)})).sort((a,b)=>b.total-a.total);
   const max=ranked[0]?.total||1;
-  const medals=['I','II','III'];
+  const medals=['I','II','III','IV','V','VI','VII','VIII','IX','X'];
   document.getElementById('lb').innerHTML=ranked.map((m,i)=>`
     <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--cream);border:0.5px solid var(--ivory3);border-radius:var(--r);margin-bottom:8px">
       <div style="font-size:15px;font-family:Georgia,serif;color:var(--gold);width:20px;flex-shrink:0;text-align:center">${medals[i]||i+1}</div>
